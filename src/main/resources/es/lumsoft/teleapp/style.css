@@ -1,0 +1,26 @@
+  .chatbox{
+
+  -fx-background-color:white;
+  -fx-min-height:400px;
+  -fx-min-width:700px;
+
+  }
+
+  .label{
+
+  -fx-text-fill:black;
+  -fx-pref-height:20px;
+  -fx-pref-width:200px;
+
+  }
+
+ .button{
+
+ -fx-background-color:green;
+ -fx-text-fill:white;
+ -fx-pref-height:25px;
+ -fx-pref-width:50px;
+ -fx-translate-x:75;
+ -fx-translate-y:410;
+
+ }
