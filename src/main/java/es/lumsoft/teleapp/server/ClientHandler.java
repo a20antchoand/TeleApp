@@ -1,9 +1,9 @@
 package es.lumsoft.teleapp.server;
 
 import java.io.*;
-import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -104,7 +104,52 @@ public class ClientHandler implements Runnable {
 
 
     private void parseCommand(String command) {
-        log("Incoming command -> " + command);
+        String[] commandSplit;
+        List<String> params = new ArrayList<>();
+
+
+        if (command.length() > 1) {
+            // Elimina el # y separa el comando de sus parámetros
+            commandSplit = command.substring(1).split("\s");
+            command = commandSplit[0];
+            params = Arrays.asList(commandSplit).subList(1, commandSplit.length);
+
+
+            switch (command) {
+                case "logout" -> closeConnection();
+                case "private" -> {
+                    ClientHandler clientHandler;
+                    StringBuilder finalMessage = new StringBuilder();
+
+
+                    if (params.size() >= 2) {
+                        // Busca el destinatario
+                        clientHandler = findDirection(params.get(0));
+
+                        // Crea el mensaje a partir de los parámetros
+                        params.subList(1, params.size()).forEach(param -> finalMessage.append(param + " "));
+
+                        // Si se ha encontrado el destinatario envía el mensaje
+                        if (clientHandler != null)
+                            sendMessage(clientHandler, this.userName, finalMessage.toString());
+                        else
+                            sendMessage(this, "Server", "Contact not found.");
+                    }
+
+                    else
+                        sendMessage(
+                                this,
+                                "Server",
+                                "Too few arguments, should be: #private 'userName' 'message'"
+                        );
+                }
+
+                default -> sendMessage(this, "Server", "Invalid command.");
+            }
+        }
+
+        else
+            sendMessage(this, "Server", "Invalid command.");
     }
 
 
@@ -133,6 +178,15 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    private ClientHandler findDirection(String userName) {
+        for (ClientHandler client : CLIENT_CONNECTIONS) {
+            if (client.userName.equals(userName)) return client;
+        }
+
+        return null;
     }
 
 

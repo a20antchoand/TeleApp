@@ -63,12 +63,17 @@ public class ClientController implements Runnable {
 
 
 
-    public void start(String userName) throws IOException {
-        writer.write(userName);
-        writer.newLine();
-        writer.flush();
+    public void start(String userName) {
+        try {
+            writer.write(userName);
+            writer.newLine();
+            writer.flush();
 
-        new Thread(this).start();
+            new Thread(this).start();
+
+        } catch (IOException e) {
+            closeConnection(e);
+        }
     }
 
 
