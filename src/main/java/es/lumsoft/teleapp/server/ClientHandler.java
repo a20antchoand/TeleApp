@@ -24,11 +24,10 @@ public class ClientHandler implements Runnable {
             writer = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
 
             // Envía el nombre del servidor
-            writer.write(serverName);
+            sendMessage(this, null, serverName);
 
         } catch (IOException e) {
-            e.printStackTrace();
-            closeConnection();
+            closeConnection(e);
         }
     }
 
@@ -45,8 +44,7 @@ public class ClientHandler implements Runnable {
             this.userName = this.reader.readLine();
 
         } catch (IOException e) {
-            e.printStackTrace();
-            closeConnection();
+            closeConnection(e);
         }
 
         // Informa al resto de usuarios
@@ -65,8 +63,7 @@ public class ClientHandler implements Runnable {
                 else broadcastMessage(message, false);
 
             } catch (IOException e) {
-                e.printStackTrace();
-                closeConnection();
+                closeConnection(e);
                 break;
             }
         }
@@ -81,13 +78,17 @@ public class ClientHandler implements Runnable {
 
 
     public void closeConnection() {
+        closeConnection(null);
+    }
+    public void closeConnection(Throwable error) {
 
         if (CLIENT_CONNECTIONS.contains(this)) {
             CLIENT_CONNECTIONS.remove(this);
             broadcastMessage(userName + " has left.", true);
         }
 
-        System.out.println("Closing connection...");
+        if (error != null) System.out.println("Closing connection due to an error: " + error.getMessage());
+        else System.out.println("Closing connection...");
 
         try {
             if (reader != null) reader.close();
@@ -108,6 +109,7 @@ public class ClientHandler implements Runnable {
 
 
     private void broadcastMessage(String message, boolean serverMessage) {
+        if (!serverMessage) System.out.println(message);
         if (message != null) {
             for (ClientHandler clientConnection : CLIENT_CONNECTIONS) {
                 if (!clientConnection.userName.equals(userName))
@@ -119,8 +121,14 @@ public class ClientHandler implements Runnable {
 
     private void sendMessage(ClientHandler destination, String senderName, String message) {
         try {
-            destination.writer.write(senderName);
+            if (senderName != null) {
+                destination.writer.write(senderName);
+                destination.writer.newLine();
+                destination.writer.flush();
+            }
             destination.writer.write(message);
+            destination.writer.newLine();
+            destination.writer.flush();
 
         } catch (IOException e) {
             e.printStackTrace();

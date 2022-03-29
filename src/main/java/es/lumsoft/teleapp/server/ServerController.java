@@ -58,4 +58,14 @@ public class ServerController {
             }
         }
     }
+
+
+
+
+
+
+    public static void main(String[] args) throws IOException {
+        ServerController serverController = new ServerController("Servidor de Mauro");
+        serverController.startServer();
+    }
 }
