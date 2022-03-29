@@ -137,6 +137,6 @@ public class ClientHandler implements Runnable {
 
 
     private void log(String message) {
-        System.out.println("CLIENT_HANDLER:" + (userName != null ? " (" + userName + "): " : ": ") + message);
+        System.out.println("CLIENT_HANDLER" + (userName != null ? " (" + userName + "): " : ": ") + message);
     }
 }
