@@ -34,12 +34,10 @@ public class ServerController {
 
             while (!ServerSocket.isClosed()) {
                 Socket inConnecton = ServerSocket.accept();
-                ClientHandler clientHandler;
 
 
-                System.out.println("New connection.");
-                clientHandler = new ClientHandler(inConnecton);
-                clientHandler.start();
+                System.out.println("New connection.\n");
+                new ClientHandler(inConnecton, ServerName).start();
             }
 
         } catch (IOException e) {
