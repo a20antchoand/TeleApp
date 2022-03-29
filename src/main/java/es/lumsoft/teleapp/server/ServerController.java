@@ -28,7 +28,7 @@ public class ServerController {
 
     public void startServer() {
         try {
-            System.out.println("Server started on " +
+            log("Server started on " +
                     ServerSocket.getInetAddress().getHostAddress() + ":" +
                     ServerSocket.getLocalPort());
 
@@ -36,7 +36,7 @@ public class ServerController {
                 Socket inConnecton = ServerSocket.accept();
 
 
-                System.out.println("New connection.\n");
+                log("New connection.");
                 new ClientHandler(inConnecton, ServerName).start();
             }
 
@@ -49,14 +49,19 @@ public class ServerController {
     public void closeServer() {
         if (ServerSocket != null) {
             try {
-                System.out.println("Closing server...");
+                log("Closing server...");
                 ServerSocket.close();
-                System.out.println("Server closed.");
+                log("Server closed.");
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    private void log(String message) {
+        System.out.println("SERVER_CONTROLLER: " + message);
     }
 
 

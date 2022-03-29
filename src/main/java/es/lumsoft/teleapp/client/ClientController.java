@@ -76,8 +76,8 @@ public class ClientController implements Runnable {
         closeConnection(null);
     }
     public void closeConnection(Throwable error) {
-        if (error != null) System.out.println("Closing connection due to an error: " + error.getMessage());
-        else System.out.println("Closing connection...");
+        if (error != null) log("Closing connection due to an error: " + error.getMessage());
+        else log("Closing connection...");
 
         try {
             if (reader != null) reader.close();
@@ -88,7 +88,7 @@ public class ClientController implements Runnable {
             ex.printStackTrace();
         }
 
-        System.out.println("Connection closed.\n");
+        log("Connection closed.\n");
     }
 
 
@@ -111,6 +111,11 @@ public class ClientController implements Runnable {
     }
 
 
+    private void log(String message) {
+        System.out.println("CLIENT_CONTROLLER: " + message);
+    }
+
+
 
 
 
@@ -121,7 +126,7 @@ public class ClientController implements Runnable {
     public static void main(String[] args) throws IOException, InterruptedException {
         ClientController clientController = new ClientController(
                 new Socket("localhost", 2022),
-                (sender, message) -> System.out.println("-> Message received from " + sender + ": " + message)
+                (sender, message) -> System.out.println(sender + ": " + message)
         );
 
         System.out.println("Connected to " + clientController.getServerName());
@@ -131,7 +136,6 @@ public class ClientController implements Runnable {
 
 
         while (true) {
-            System.out.print("-> ");
             clientController.sendMessage(new Scanner(System.in).nextLine());
             Thread.sleep(200);
         }

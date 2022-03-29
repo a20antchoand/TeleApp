@@ -87,8 +87,8 @@ public class ClientHandler implements Runnable {
             broadcastMessage(userName + " has left.", true);
         }
 
-        if (error != null) System.out.println("Closing connection due to an error: " + error.getMessage());
-        else System.out.println("Closing connection...");
+        if (error != null) log("Closing connection due to an error: " + error.getMessage());
+        else log("Closing connection...");
 
         try {
             if (reader != null) reader.close();
@@ -99,17 +99,17 @@ public class ClientHandler implements Runnable {
             ex.printStackTrace();
         }
 
-        System.out.println("Connection closed.\n");
+        log("Connection closed.\n");
     }
 
 
     private void parseCommand(String command) {
-        System.out.println("Incoming command -> " + command);
+        log("Incoming command -> " + command);
     }
 
 
     private void broadcastMessage(String message, boolean serverMessage) {
-        if (!serverMessage) System.out.println(message);
+        if (!serverMessage) log(message);
         if (message != null) {
             for (ClientHandler clientConnection : CLIENT_CONNECTIONS) {
                 if (!clientConnection.userName.equals(userName))
@@ -133,5 +133,10 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    private void log(String message) {
+        System.out.println("CLIENT_HANDLER:" + (userName != null ? " (" + userName + "): " : ": ") + message);
     }
 }
