@@ -9,19 +9,22 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Observable;
+import java.util.Scanner;
 
 public class ServidorPrueba {
-    private int puerto;
+   /* private int puerto;
 
     public ServidorPrueba(int puerto){
         this.puerto=puerto;
-    }
+    }*/
 
-    public static void main (String[] args){
+    public void initServidor(){
         ServerSocket servidor = null;
         Socket sc = null;
         DataInputStream in;
         DataOutputStream out;
+        Scanner input = new Scanner(System.in);
+        String mensajeRecibido;
 
         final int PUERTO = 9999;
 
@@ -34,11 +37,20 @@ public class ServidorPrueba {
                 in = new DataInputStream(sc.getInputStream());
                 out = new DataOutputStream(sc.getOutputStream());
 
-                String mensaje = in.readUTF();
+                String mensaje = "";
 
-                System.out.println(mensaje);
+                //System.out.println(mensaje);
 
-                out.writeUTF("El servidor de Lumsoft te saluda: ");
+                while(!mensaje.equals("x")){
+                    mensajeRecibido = in.readUTF();//Leemos respuesta
+                    System.out.println(mensajeRecibido);
+                    System.out.println("Escriba un mensaje para enviar");
+                    mensaje = input.nextLine();
+                    out.writeUTF(""+mensaje);//enviamos mensaje
+
+                }
+
+                //out.writeUTF("El servidor de Lumsoft te saluda: ");
 
                 sc.close();
                 System.out.println("Cliente deconectado");
@@ -47,6 +59,10 @@ public class ServidorPrueba {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    public static void main(String[] args){
+        ServidorPrueba o = new ServidorPrueba();
+        o.initServidor();
     }
 /*
     @Override
