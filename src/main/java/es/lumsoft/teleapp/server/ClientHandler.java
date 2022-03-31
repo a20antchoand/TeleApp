@@ -55,7 +55,7 @@ public class ClientHandler implements Runnable {
 
 
         // Comienza a escuchar
-        while (connection.isConnected()) {
+        while (!connection.isClosed()) {
             try {
                 message = reader.readLine();
 
@@ -69,6 +69,8 @@ public class ClientHandler implements Runnable {
                 break;
             }
         }
+
+        System.out.println("Finalizado correctamente");
     }
 
 
@@ -107,7 +109,7 @@ public class ClientHandler implements Runnable {
 
     private void parseCommand(String command) {
         String[] commandSplit;
-        List<String> params = new ArrayList<>();
+        List<String> params;
 
 
         if (command.length() > 1) {

@@ -31,6 +31,9 @@ public class ClientController implements Runnable {
 
 
 
+    public boolean isClosed() {
+        return connection.isClosed();
+    }
     public String getServerName() {
         return serverName;
     }
@@ -44,13 +47,13 @@ public class ClientController implements Runnable {
 
 
         // Comienza a escuchar
-        while (connection.isConnected()) {
+        while (!connection.isClosed()) {
             try {
                 sender = reader.readLine();
                 message = reader.readLine();
 
                 // Ejecuta la acción que se haya dado con los datos recibidos
-                if (messageReceivedListener != null)
+                if (sender != null && message != null && messageReceivedListener != null)
                     messageReceivedListener.onMessageReceived(sender, message);
 
             } catch (IOException e) {
@@ -103,6 +106,8 @@ public class ClientController implements Runnable {
             writer.newLine();
             writer.flush();
 
+            if (message.equals("#logout")) closeConnection();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -140,7 +145,7 @@ public class ClientController implements Runnable {
         System.out.println("Chat iniciado");
 
 
-        while (true) {
+        while (!clientController.isClosed()) {
             clientController.sendMessage(new Scanner(System.in).nextLine());
             Thread.sleep(200);
         }
