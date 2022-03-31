@@ -59,8 +59,10 @@ public class ClientHandler implements Runnable {
             try {
                 message = reader.readLine();
 
-                if (message.charAt(0) == '#') parseCommand(message);
-                else broadcastMessage(message, false);
+                if (message != null) {
+                    if (message.length() > 0 && message.charAt(0) == '#') parseCommand(message);
+                    else broadcastMessage(message, false);
+                }
 
             } catch (IOException e) {
                 closeConnection(e);
