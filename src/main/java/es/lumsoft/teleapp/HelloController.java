@@ -9,6 +9,11 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import javafx.scene.input.KeyEvent;
+import static javafx.scene.input.KeyCode.ENTER;
+import static javafx.scene.input.KeyCode.ESCAPE;
+import static javafx.scene.input.KeyCode.SPACE;
+
 public class HelloController {
 
     @FXML
@@ -22,6 +27,8 @@ public class HelloController {
 
     @FXML
     private TextArea textAreaMissatge;
+
+    //https://www.javamexico.org/foros/java_standard_edition/funcionamiento_del_un_boton_enter_igual_que_click
 
     @FXML
     protected void enviarMissatge() {
