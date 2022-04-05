@@ -9,12 +9,14 @@ import java.util.List;
 public class ClientHandler implements Runnable {
 
     private static final List<ClientHandler> CLIENT_CONNECTIONS = new ArrayList<>();
+    private static final List<Integer> GROUPS_ID = new ArrayList<>();
 
 
     private Socket connection;
     private BufferedReader reader;
     private BufferedWriter writer;
     private String userName;
+    private boolean loggedInGroup;
 
 
     public ClientHandler(Socket connection, String serverName) {
@@ -38,22 +40,6 @@ public class ClientHandler implements Runnable {
     public void run() {
         String message;
 
-
-        // Espera al nombre de usuario
-        try {
-            this.userName = this.reader.readLine();
-
-        } catch (IOException e) {
-            closeConnection(e);
-        }
-
-        // Informa al resto de usuarios
-        broadcastMessage(userName + " has joined.", true);
-
-        // Añade la conexión actual a la lista de conexiones con el servidor
-        CLIENT_CONNECTIONS.add(this);
-
-
         // Comienza a escuchar
         while (!connection.isClosed()) {
             try {
@@ -61,7 +47,7 @@ public class ClientHandler implements Runnable {
 
                 if (message != null) {
                     if (message.length() > 0 && message.charAt(0) == '#') parseCommand(message);
-                    else broadcastMessage(message, false);
+                    else sendMessage(this, "Server", "Bad request.");
                 }
 
             } catch (IOException e) {
@@ -69,8 +55,6 @@ public class ClientHandler implements Runnable {
                 break;
             }
         }
-
-        System.out.println("Finalizado correctamente");
     }
 
 
@@ -120,7 +104,18 @@ public class ClientHandler implements Runnable {
 
 
             switch (command) {
+                case "login" -> {
+                    if (params.size() > 1) login(params.get(0), params.get(1));
+
+                    else
+                        sendMessage(
+                                this,
+                                "Server",
+                                "Too few arguments, should be: #login 'userName' 'group ID or 'new' (Groups listed with #groups)'"
+                        );
+                }
                 case "logout" -> closeConnection();
+                case "groups" -> sendMessage(this, "Server: Groups: ", GROUPS_ID.toString());
                 case "private" -> {
                     ClientHandler clientHandler;
                     StringBuilder finalMessage = new StringBuilder();
@@ -135,7 +130,7 @@ public class ClientHandler implements Runnable {
 
                         // Si se ha encontrado el destinatario envía el mensaje
                         if (clientHandler != null)
-                            sendMessage(clientHandler, this.userName, finalMessage.toString());
+                            sendMessage(clientHandler, this.userName + " - private", finalMessage.toString());
                         else
                             sendMessage(this, "Server", "Contact not found.");
                     }
@@ -154,6 +149,38 @@ public class ClientHandler implements Runnable {
 
         else
             sendMessage(this, "Server", "Invalid command.");
+    }
+
+
+    private void login(String userName, String group) {
+        int groupID = -1;
+        this.userName = userName;
+
+
+        // Si es un grupo nuevo busca un espacio nuevo
+        if (group.equals("new")) {
+            for (int i = 1; i <= 250; i++) {
+                if (!GROUPS_ID.contains(i)) {
+                    groupID = i;
+                    break;
+                }
+            }
+        }
+        // Si no es nuevo comprueba que sea un grupo válido y que existe el grupo
+        else {
+            groupID = Integer.parseInt(group);
+            if (groupID < 1 || groupID > 250 || !GROUPS_ID.contains(groupID)) groupID = -1;
+        }
+
+
+        // Si el grupo es correcto informa al usuario del grupo
+        if (groupID > -1) {
+            GROUPS_ID.add(groupID);
+            sendMessage(this, "Server", Integer.toString(groupID));
+            loggedInGroup = true;
+        }
+
+        else sendMessage(this, "Server", "Was not possible to login in that group. Maybe is not created or could not create.");
     }
 
 
