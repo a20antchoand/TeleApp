@@ -9,20 +9,16 @@ public class ClientController implements Runnable {
     private Socket connection;
     private BufferedReader reader;
     private BufferedWriter writer;
-    private OnMessageReceivedListener messageReceivedListener = null;
-    private String serverName;
     private String userName;
+    private OnMessageReceivedListener onMessageReceivedListener;
+    private OnServerMessageReceivedListener onServerMessageReceivedListener;
 
 
-    public ClientController(Socket connection, OnMessageReceivedListener messageReceivedListener) {
+    public ClientController(String hostName, int port) {
         try {
-            this.connection = connection;
-            this.messageReceivedListener = messageReceivedListener;
+            this.connection = new Socket(hostName, port);
             reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
-
-            // Espera el nombre del servidor
-            serverName = reader.readLine();
 
         } catch (IOException e) {
             closeConnection(e);
@@ -30,17 +26,14 @@ public class ClientController implements Runnable {
     }
 
 
-
-
-    public boolean isClosed() {
-        return connection.isClosed();
-    }
-    public String getServerName() {
-        return serverName;
-    }
     public String getUserName() {
         return userName;
     }
+    public boolean isClosed() {
+        return connection.isClosed();
+    }
+
+
 
 
     @Override
@@ -54,10 +47,15 @@ public class ClientController implements Runnable {
                 sender = reader.readLine();
                 message = reader.readLine();
 
-                // Ejecuta la acción que se haya dado con los datos recibidos
+                // Comprueba que no sea null
                 if (sender != null && message != null) {
-                    if (messageReceivedListener != null)
-                        messageReceivedListener.onMessageReceived(sender, message);
+
+                    // Comprueba si es un mensaje del servidor
+                    if (sender.equals("Server")) handleServerMessage(message);
+
+                    // Si no es del servidor ejecuta la acción establecida
+                    else if (onMessageReceivedListener != null)
+                        onMessageReceivedListener.onMessageReceived(sender, message);
                 }
 
                 else closeConnection();
@@ -70,13 +68,24 @@ public class ClientController implements Runnable {
     }
 
 
-
-
-    public void start() {
-        new Thread(this).start();
+    private void log(String message) {
+        System.out.println("CLIENT_CONTROLLER: " + message);
     }
 
 
+
+
+    // * Connection control
+
+    public void startListening(
+            OnMessageReceivedListener onMessageReceivedListener,
+            OnServerMessageReceivedListener onServerMessageReceivedListener
+    ) {
+
+        this.onMessageReceivedListener = onMessageReceivedListener;
+        this.onServerMessageReceivedListener = onServerMessageReceivedListener;
+        new Thread(this).start();
+    }
     public void closeConnection() {
         closeConnection(null);
     }
@@ -97,7 +106,10 @@ public class ClientController implements Runnable {
     }
 
 
-    public void sendMessage(String message) {
+
+    // * Client functions
+
+    public void sendCommand(String message) {
         try {
             writer.write(message);
             writer.newLine();
@@ -109,15 +121,49 @@ public class ClientController implements Runnable {
     }
 
 
+    private String getMessageType(String message) {
+        for (int i = 0; i < message.length(); i++) {
+            if (message.charAt(i) == ':') return message.substring(0, i);
+        }
 
+        return null;
+    }
+
+
+    private void handleServerMessage(String message) {
+        String messageType = getMessageType(message);
+        assert messageType != null;
+        message = message.substring(messageType.length() + 2);
+
+
+        switch (messageType) {
+            case "*info", "*error" ->
+                    onServerMessageReceivedListener.onServerMessageReceived(
+                            messageType,
+                            message
+                    );
+            case "*login" -> {
+            }
+        }
+    }
+
+
+    private void logginInGroup(int groupID) {
+
+    }
+
+
+
+
+    // * Events
 
     public interface OnMessageReceivedListener {
         void onMessageReceived(String sender, String message);
     }
 
 
-    private void log(String message) {
-        System.out.println("CLIENT_CONTROLLER: " + message);
+    public interface OnServerMessageReceivedListener {
+        void onServerMessageReceived(String type, String message);
     }
 
 
@@ -125,21 +171,18 @@ public class ClientController implements Runnable {
 
 
 
+    public static void main(String[] args) throws InterruptedException {
+        ClientController clientController = new ClientController("localhost", 2022);
 
 
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        ClientController clientController = new ClientController(
-                new Socket("localhost", 2022),
-                (sender, message) -> System.out.println(sender + ": " + message)
-        );
-
-        System.out.println("Connected to " + clientController.getServerName());
-        clientController.start();
-
+        System.out.println("Connected to server");
+        clientController.startListening(
+                (sender, message) -> System.out.println(sender + ": " + message),
+                 (type, message) -> System.out.println((type.equals("*error") ? "Error: " : "") + message));
+        System.out.println("Started listening");
 
         while (!clientController.isClosed()) {
-            clientController.sendMessage(new Scanner(System.in).nextLine());
+            clientController.sendCommand(new Scanner(System.in).nextLine());
             Thread.sleep(200);
         }
     }

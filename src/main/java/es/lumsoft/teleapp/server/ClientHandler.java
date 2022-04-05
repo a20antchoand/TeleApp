@@ -19,14 +19,11 @@ public class ClientHandler implements Runnable {
     private Integer loggedInGroup = null;
 
 
-    public ClientHandler(Socket connection, String serverName) {
+    public ClientHandler(Socket connection) {
         try {
             this.connection = connection;
             reader = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
             writer = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
-
-            // Envía el nombre del servidor
-            sendMessage(this, null, serverName);
 
         } catch (IOException e) {
             closeConnection(e);

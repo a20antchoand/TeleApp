@@ -7,19 +7,15 @@ import java.net.Socket;
 public class ServerController {
 
     private final ServerSocket ServerSocket;
-    private final String ServerName;
 
 
-    public ServerController(String serverName) throws IOException {
-        ServerName = serverName;
+    public ServerController() throws IOException {
         ServerSocket = new ServerSocket(2022);
     }
-    public ServerController(ServerSocket serverSocket, String serverName) {
+    public ServerController(ServerSocket serverSocket) {
         ServerSocket = serverSocket;
-        ServerName = serverName;
     }
-    public ServerController(String serverName, int port) throws IOException {
-        ServerName = serverName;
+    public ServerController(int port) throws IOException {
         ServerSocket = new ServerSocket(port);
     }
 
@@ -37,7 +33,7 @@ public class ServerController {
 
 
                 log("New connection.");
-                new ClientHandler(inConnecton, ServerName).start();
+                new ClientHandler(inConnecton).start();
             }
 
         } catch (IOException e) {
@@ -70,7 +66,7 @@ public class ServerController {
 
 
     public static void main(String[] args) throws IOException {
-        ServerController serverController = new ServerController("Servidor de Mauro");
+        ServerController serverController = new ServerController();
         serverController.startServer();
     }
 }
