@@ -6,10 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
@@ -32,7 +29,7 @@ public class HelloController implements Initializable {
     private Label nomServer;*/
 
     @FXML
-    private TextArea textAreaMissatge;
+    private TextField textAreaMissatge;
 
     @FXML
     private ScrollPane scrollPane;
@@ -63,7 +60,9 @@ public class HelloController implements Initializable {
     private void onEnterSendMessage(KeyEvent tecla) {
 
         if (tecla.getCode().equals(KeyCode.ENTER)) {
-            enviarMissatge();
+
+            if (!textAreaMissatge.getText().equals("\n"))
+                enviarMissatge();
         }
     }
 
@@ -75,7 +74,6 @@ public class HelloController implements Initializable {
         if (!text.equals("")) {
 
             textAreaMissatge.setText("");
-
             HBox hbox = new HBox();
 
             containerMissatges.setPadding(new Insets(10, 50, 50, 50));
@@ -95,7 +93,13 @@ public class HelloController implements Initializable {
             msg.setWrapText(true);
 
             hbox.getChildren().add(msg);
-            containerMissatges.getChildren().add(hbox);
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    containerMissatges.getChildren().add(hbox);
+
+                }
+            });
 
             scrollPane.setVvalue(1.0);
         }
@@ -117,7 +121,13 @@ public class HelloController implements Initializable {
         msg.setWrapText(true);
 
         hbox.getChildren().add(msg);
-        containerMissatges.getChildren().add(hbox);
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                containerMissatges.getChildren().add(hbox);
+
+            }
+        });
 
         scrollPane.setVvalue(1.0);
 
