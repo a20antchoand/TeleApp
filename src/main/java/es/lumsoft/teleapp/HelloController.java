@@ -7,10 +7,12 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -40,16 +42,6 @@ public class HelloController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         textAreaMissatge.setOnKeyPressed(this::onEnterSendMessage);
-
-        btnEnviar.setStyle(
-                "-fx-background-radius: 5em; " +
-                        "-fx-min-width: 100px; " +
-                        "-fx-min-height: 100px; " +
-                        "-fx-max-width: 100px; " +
-                        "-fx-max-height: 100px;"
-        );
-
-        btnEnviar.setAlignment(Pos.CENTER);
 
     }
 
@@ -89,19 +81,14 @@ public class HelloController implements Initializable {
 
             Label msg = new Label("Tú: " + text);
             msg.setPadding(new Insets(10, 10, 10, 10));
-            msg.setStyle("-fx-background-color:WHITE");
+            msg.setStyle("-fx-background-color:#A3EB9B");
+            msg.setAlignment(Pos.BASELINE_RIGHT);
             msg.setWrapText(true);
 
             hbox.getChildren().add(msg);
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    containerMissatges.getChildren().add(hbox);
+            containerMissatges.getChildren().add(hbox);
 
-                }
-            });
 
-            scrollPane.setVvalue(1.0);
         }
     }
 
@@ -121,15 +108,8 @@ public class HelloController implements Initializable {
         msg.setWrapText(true);
 
         hbox.getChildren().add(msg);
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                containerMissatges.getChildren().add(hbox);
+        containerMissatges.getChildren().add(hbox);
 
-            }
-        });
-
-        scrollPane.setVvalue(1.0);
 
     }
 

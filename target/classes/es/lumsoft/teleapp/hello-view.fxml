@@ -2,33 +2,117 @@
 
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="es.lumsoft.teleapp.HelloController">
-   <bottom>
-      <HBox prefHeight="100.0" prefWidth="200.0" BorderPane.alignment="CENTER">
-         <children>
-            <TextField fx:id="textAreaMissatge" alignment="TOP_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="500.0" promptText="Escriu aquí..." />
-            <Button fx:id="btnEnviar" alignment="CENTER" contentDisplay="CENTER" graphicTextGap="0.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#enviarMissatge" prefHeight="100.0" prefWidth="106.0" text="ENVIAR" />
-         </children>
-      </HBox>
-   </bottom>
-   <top>
-      <Label text="TeleApp" BorderPane.alignment="CENTER">
-         <font>
-            <Font size="32.0" />
-         </font>
-      </Label>
-   </top>
-   <center>
-      <ScrollPane fx:id="scrollPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
-        <content>
-            <VBox fx:id="containerMissatges" alignment="CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="255.0" prefWidth="595.0">
-               <padding>
-                  <Insets bottom="50.0" left="50.0" right="50.0" top="50.0" />
-               </padding></VBox>
-        </content>
+<AnchorPane fx:id="MAIN_FRM" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="350.0" opacity="0.98" prefHeight="562.0" prefWidth="896.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="es.lumsoft.teleapp.HelloController">
+   <children>
+      <TextField fx:id="SEARCH_TXT" layoutX="55.0" layoutY="10.0" prefHeight="30.0" prefWidth="160.0" promptText="Search..." AnchorPane.leftAnchor="55.0" AnchorPane.topAnchor="10.0" />
+      <ImageView layoutX="190.0" layoutY="16.0" pickOnBounds="true" preserveRatio="true" AnchorPane.leftAnchor="190.0" AnchorPane.topAnchor="16.0">
+         <image>
+            <Image url="@../Images/search.png" />
+         </image>
+      </ImageView>
+      <Button fx:id="ADD_NEW_BTN" layoutX="6.0" layoutY="5.0" minHeight="0.0" minWidth="0.0" mnemonicParsing="false" prefHeight="40.0" prefWidth="40.0">
+         <graphic>
+            <ImageView pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../Images/menu.png" />
+               </image>
+            </ImageView>
+         </graphic></Button>
+      <ScrollPane fx:id="SCROLL_BAR_CONTACTS" fitToHeight="true" fitToWidth="true" layoutY="49.0" pannable="true" prefHeight="512.0" prefWidth="214.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="50.0">
+         <content>
+            <VBox fx:id="MAIN_CONTACTS" minHeight="-Infinity" minWidth="-Infinity" prefHeight="510.0" prefWidth="197.0" spacing="1.0">
+               <children>
+                  <AnchorPane prefHeight="74.0" prefWidth="212.0">
+                     <children>
+                        <ImageView fitHeight="50.0" fitWidth="50.0" layoutX="14.0" layoutY="12.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="12.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="12.0">
+                           <image>
+                              <Image url="@bkg.jpg" />
+                           </image>
+                        </ImageView>
+                        <ImageView fitHeight="10.0" fitWidth="10.0" layoutX="75.0" layoutY="32.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../Images/online.png" />
+                           </image>
+                        </ImageView>
+                        <Label layoutX="88.0" layoutY="17.0" prefHeight="40.0" prefWidth="117.0" text="Mauro Lasala">
+                           <font>
+                              <Font size="15.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </AnchorPane>
+
+                  <AnchorPane prefHeight="74.0" prefWidth="212.0">
+                     <children>
+                        <ImageView fitHeight="50.0" fitWidth="50.0" layoutX="14.0" layoutY="12.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="12.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="12.0">
+                           <image>
+                              <Image url="@bkg.jpg" />
+                           </image>
+                        </ImageView>
+                        <ImageView fitHeight="10.0" fitWidth="10.0" layoutX="75.0" layoutY="32.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../Images/online.png" />
+                           </image>
+                        </ImageView>
+                        <Label layoutX="88.0" layoutY="17.0" prefHeight="40.0" prefWidth="117.0" text="Mauro Lasala">
+                           <font>
+                              <Font size="15.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </AnchorPane>
+
+                  <AnchorPane prefHeight="74.0" prefWidth="212.0">
+                     <children>
+                        <ImageView fitHeight="50.0" fitWidth="50.0" layoutX="14.0" layoutY="12.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="12.0" AnchorPane.leftAnchor="14.0" AnchorPane.topAnchor="12.0">
+                           <image>
+                              <Image url="@bkg.jpg" />
+                           </image>
+                        </ImageView>
+                        <ImageView fitHeight="10.0" fitWidth="10.0" layoutX="75.0" layoutY="32.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@../Images/online.png" />
+                           </image>
+                        </ImageView>
+                        <Label layoutX="88.0" layoutY="17.0" prefHeight="40.0" prefWidth="117.0" text="Mauro Lasala">
+                           <font>
+                              <Font size="15.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </AnchorPane>
+               </children></VBox>
+         </content>
       </ScrollPane>
-   </center>
-</BorderPane>
+      <ScrollPane fx:id="SCROLL_BAR" fitToHeight="true" fitToWidth="true" layoutX="213.0" layoutY="49.0" prefHeight="455.0" prefWidth="683.0" AnchorPane.bottomAnchor="57.0" AnchorPane.leftAnchor="213.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="50.0">
+         <content>
+            <VBox fx:id="containerMissatges" prefHeight="453.0" prefWidth="675.0" stylesheets="@style.css" />
+         </content>
+      </ScrollPane>
+      <HBox fx:id="TITLE_FINAL_CONTAINER" alignment="CENTER_LEFT" layoutX="291.0" layoutY="1.0" prefHeight="50.0" prefWidth="560.0" AnchorPane.leftAnchor="291.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <Label alignment="CENTER" contentDisplay="CENTER" graphicTextGap="0.0" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefWidth="605.0" text="TeleApp" textAlignment="CENTER" HBox.hgrow="NEVER">
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <font>
+                  <Font size="32.0" />
+               </font>
+            </Label>
+         </children></HBox>
+      <TextField fx:id="textAreaMissatge" alignment="TOP_LEFT" layoutX="214.0" layoutY="505.0" prefHeight="57.0" prefWidth="617.0" promptText="Type a message..." AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="214.0" AnchorPane.rightAnchor="65.0" />
+      <Button fx:id="btnEnviar" layoutX="831.0" layoutY="505.0" mnemonicParsing="false" onAction="#enviarMissatge" prefHeight="57.0" prefWidth="65.0" style="-fx-background-radius: 37px;" AnchorPane.bottomAnchor="5.0" AnchorPane.leftAnchor="836.0" AnchorPane.rightAnchor="5.0" AnchorPane.topAnchor="510.0">
+         <graphic>
+            <ImageView pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../Images/send.png" />
+               </image>
+            </ImageView>
+         </graphic>
+      </Button>
+   </children>
+</AnchorPane>

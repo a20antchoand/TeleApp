@@ -25,7 +25,7 @@ public class HelloApplication extends Application{
     public void start(Stage stage) throws Exception{
 
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 600, 400);
+        Scene scene = new Scene(fxmlLoader.load(), 896, 562);
         stage.setTitle("TeleApp");
         stage.setScene(scene);
         stage.show();
