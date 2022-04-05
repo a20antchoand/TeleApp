@@ -74,6 +74,8 @@ public class ClientController implements Runnable {
 
             new Thread(this).start();
 
+            System.out.println("Hola");
+
         } catch (IOException e) {
             closeConnection(e);
         }

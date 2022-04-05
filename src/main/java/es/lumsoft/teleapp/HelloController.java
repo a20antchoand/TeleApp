@@ -1,5 +1,7 @@
 package es.lumsoft.teleapp;
 
+import es.lumsoft.teleapp.client.ClientController;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -34,7 +36,8 @@ public class HelloController implements Initializable {
         textAreaMissatge.setOnKeyPressed(this::onEnterSendMessage);
     }
 
-    ClientControl controler = new ClientControler(new Socket("localhost", 2022), this::rebreMissatge);
+    boolean isConnected = false;
+    ClientController controler = new ClientController(new Socket("localhost", 2022), (sender, message) -> Platform.runLater(() -> rebreMissatge(sender, message)));
 
 
     private void onEnterSendMessage(KeyEvent tecla) {
@@ -55,6 +58,13 @@ public class HelloController implements Initializable {
 
         String text = textAreaMissatge.getText();
         textAreaMissatge.setText("");
+
+        if (!isConnected) {
+            controler.start(text);
+            isConnected = true;
+        }
+        else
+            controler.sendMessage(text);
 
         Label msg = new Label("Tú: " + text);
         msg.setPadding(new Insets(10, 10, 10, 10));
