@@ -7,9 +7,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
@@ -23,10 +21,19 @@ import java.util.ResourceBundle;
 public class HelloController implements Initializable {
 
     @FXML
+    private Button btnEnviar;
+
+    @FXML
     private VBox containerMissatges;
 
     @FXML
+    private Label nomServer;
+
+    @FXML
     private TextArea textAreaMissatge;
+
+    @FXML
+    private ScrollPane scrollPane;
 
     public HelloController() throws IOException {
     }
@@ -34,6 +41,17 @@ public class HelloController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         textAreaMissatge.setOnKeyPressed(this::onEnterSendMessage);
+
+        btnEnviar.setStyle(
+                "-fx-background-radius: 5em; " +
+                        "-fx-min-width: 100px; " +
+                        "-fx-min-height: 100px; " +
+                        "-fx-max-width: 100px; " +
+                        "-fx-max-height: 100px;"
+        );
+
+        btnEnviar.setAlignment(Pos.CENTER);
+
     }
 
     boolean isConnected = false;
@@ -41,6 +59,7 @@ public class HelloController implements Initializable {
 
 
     private void onEnterSendMessage(KeyEvent tecla) {
+
         if (tecla.getCode().equals(KeyCode.ENTER)) {
             enviarMissatge();
         }
@@ -49,30 +68,35 @@ public class HelloController implements Initializable {
     @FXML
     protected void enviarMissatge() {
 
-        HBox hbox = new HBox();
-
-        containerMissatges.setPadding(new Insets(10, 50, 50, 50));
-        containerMissatges.setSpacing(10);
-
-        hbox.setAlignment(Pos.BASELINE_RIGHT);
-
         String text = textAreaMissatge.getText();
-        textAreaMissatge.setText("");
 
-        if (!isConnected) {
-            controler.start(text);
-            isConnected = true;
+        if (!text.equals("")) {
+
+            textAreaMissatge.setText("");
+
+            HBox hbox = new HBox();
+
+            containerMissatges.setPadding(new Insets(10, 50, 50, 50));
+            containerMissatges.setSpacing(10);
+
+            hbox.setAlignment(Pos.BASELINE_RIGHT);
+
+            if (!isConnected) {
+                controler.start(text);
+                isConnected = true;
+            } else
+                controler.sendMessage(text);
+
+            Label msg = new Label("Tú: " + text);
+            msg.setPadding(new Insets(10, 10, 10, 10));
+            msg.setStyle("-fx-background-color:WHITE");
+            msg.setWrapText(true);
+
+            hbox.getChildren().add(msg);
+            containerMissatges.getChildren().add(hbox);
+
+            scrollPane.setVvalue(1.0);
         }
-        else
-            controler.sendMessage(text);
-
-        Label msg = new Label("Tú: " + text);
-        msg.setPadding(new Insets(10, 10, 10, 10));
-        msg.setStyle("-fx-background-color:WHITE");
-
-        hbox.getChildren().add(msg);
-        containerMissatges.getChildren().add(hbox);
-
     }
 
     @FXML
@@ -88,9 +112,13 @@ public class HelloController implements Initializable {
         Label msg = new Label(sender + ": " + message);
         msg.setPadding(new Insets(10, 10, 10, 10));
         msg.setStyle("-fx-background-color:GREY");
+        msg.setWrapText(true);
 
         hbox.getChildren().add(msg);
         containerMissatges.getChildren().add(hbox);
+
+        scrollPane.setVvalue(1.0);
+
     }
 
 

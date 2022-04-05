@@ -158,8 +158,12 @@ public class ClientHandler implements Runnable {
 
 
     private void broadcastMessage(String message, boolean serverMessage) {
+
+
+
         if (!serverMessage) log(message);
         if (message != null) {
+
             for (ClientHandler clientConnection : CLIENT_CONNECTIONS) {
                 if (!clientConnection.userName.equals(userName))
                     sendMessage(clientConnection, (serverMessage ? "Server" : userName), message);

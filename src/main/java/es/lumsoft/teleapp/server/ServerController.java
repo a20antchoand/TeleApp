@@ -53,7 +53,7 @@ public class ServerController {
                 ServerSocket.close();
                 log("Server closed.");
 
-            } catch (IOException e) {
+            } catch (IOException e) {https://openweathermap.org/api
                 e.printStackTrace();
             }
         }
