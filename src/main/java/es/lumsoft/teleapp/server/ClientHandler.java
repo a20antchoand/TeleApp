@@ -16,7 +16,7 @@ public class ClientHandler implements Runnable {
     private BufferedReader reader;
     private BufferedWriter writer;
     private String userName;
-    private boolean loggedInGroup;
+    private Integer loggedInGroup = null;
 
 
     public ClientHandler(Socket connection, String serverName) {
@@ -47,7 +47,7 @@ public class ClientHandler implements Runnable {
 
                 if (message != null) {
                     if (message.length() > 0 && message.charAt(0) == '#') parseCommand(message);
-                    else sendMessage(this, "Server", "Bad request.");
+                    else sendMessage(this, "Server", "*error: Bad request.");
                 }
 
             } catch (IOException e) {
@@ -111,11 +111,11 @@ public class ClientHandler implements Runnable {
                         sendMessage(
                                 this,
                                 "Server",
-                                "Too few arguments, should be: #login 'userName' 'group ID or 'new' (Groups listed with #groups)'"
+                                "*error: Too few arguments, should be: #login 'userName' 'group ID or 'new' (Groups listed with #groups)'"
                         );
                 }
                 case "logout" -> closeConnection();
-                case "groups" -> sendMessage(this, "Server: Groups: ", GROUPS_ID.toString());
+                case "groups" -> sendMessage(this, "Server: *info: ", GROUPS_ID.toString());
                 case "private" -> {
                     ClientHandler clientHandler;
                     StringBuilder finalMessage = new StringBuilder();
@@ -130,31 +130,31 @@ public class ClientHandler implements Runnable {
 
                         // Si se ha encontrado el destinatario envía el mensaje
                         if (clientHandler != null)
-                            sendMessage(clientHandler, this.userName + " - private", finalMessage.toString());
+                            sendMessage(clientHandler, this.userName, finalMessage.toString());
                         else
-                            sendMessage(this, "Server", "Contact not found.");
+                            sendMessage(this, "Server", "*error: Contact not found.");
                     }
 
                     else
                         sendMessage(
                                 this,
                                 "Server",
-                                "Too few arguments, should be: #private 'userName' 'message'"
+                                "*error: Too few arguments, should be: #private 'userName' 'message'"
                         );
                 }
 
-                default -> sendMessage(this, "Server", "Invalid command.");
+                default -> sendMessage(this, "Server", "*error: Invalid command.");
             }
         }
 
         else
-            sendMessage(this, "Server", "Invalid command.");
+            sendMessage(this, "Server", "*error: Invalid command.");
     }
 
 
     private void login(String userName, String group) {
         int groupID = -1;
-        this.userName = userName;
+        this.userName = (!userName.equals("Server") ? userName : userName + "Fake");
 
 
         // Si es un grupo nuevo busca un espacio nuevo
@@ -162,6 +162,7 @@ public class ClientHandler implements Runnable {
             for (int i = 1; i <= 250; i++) {
                 if (!GROUPS_ID.contains(i)) {
                     groupID = i;
+                    GROUPS_ID.add(groupID);
                     break;
                 }
             }
@@ -174,13 +175,18 @@ public class ClientHandler implements Runnable {
 
 
         // Si el grupo es correcto informa al usuario del grupo
-        if (groupID > -1) {
-            GROUPS_ID.add(groupID);
-            sendMessage(this, "Server", Integer.toString(groupID));
-            loggedInGroup = true;
+        if (groupID > -1 && loggedInGroup == null) {
+            loggedInGroup = groupID;
+            sendMessage(this, "Server", "*login: " + groupID);
         }
 
-        else sendMessage(this, "Server", "Was not possible to login in that group. Maybe is not created or could not create.");
+        else if (loggedInGroup != null) {
+            // TODO logout del grupo actual para que si se queda sin usuarios un grupo se elimine
+            loggedInGroup = groupID;
+            sendMessage(this, "Server", "*login: " + groupID);
+        }
+
+        else sendMessage(this, "Server", "*error: Was not possible to login in that group.");
     }
 
 
