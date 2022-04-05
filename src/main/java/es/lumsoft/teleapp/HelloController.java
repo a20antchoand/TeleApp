@@ -2,12 +2,14 @@ package es.lumsoft.teleapp;
 
 import es.lumsoft.teleapp.client.ClientController;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
@@ -26,8 +28,8 @@ public class HelloController implements Initializable {
     @FXML
     private VBox containerMissatges;
 
-    @FXML
-    private Label nomServer;
+/*    @FXML
+    private Label nomServer;*/
 
     @FXML
     private TextArea textAreaMissatge;
