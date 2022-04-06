@@ -1,189 +1,87 @@
 package es.lumsoft.teleapp.client;
 
-import java.io.*;
-import java.net.Socket;
+import java.io.IOException;
+import java.util.Objects;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class ClientController implements Runnable {
+public class ClientController {
 
-    private Socket connection;
-    private BufferedReader reader;
-    private BufferedWriter writer;
-    private String userName;
-    private OnMessageReceivedListener onMessageReceivedListener;
-    private OnServerMessageReceivedListener onServerMessageReceivedListener;
+    private ClientSideServerController serverController;
+    private GroupController groupController;
 
 
-    public ClientController(String hostName, int port) {
-        try {
-            this.connection = new Socket(hostName, port);
-            reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
-
-        } catch (IOException e) {
-            closeConnection(e);
-        }
-    }
-
-
-    public String getUserName() {
-        return userName;
-    }
-    public boolean isClosed() {
-        return connection.isClosed();
-    }
-
-
-
-
-    @Override
-    public void run() {
-        String sender, message;
-
-
-        // Comienza a escuchar
-        while (!connection.isClosed()) {
-            try {
-                sender = reader.readLine();
-                message = reader.readLine();
-
-                // Comprueba que no sea null
-                if (sender != null && message != null) {
-
-                    // Comprueba si es un mensaje del servidor
-                    if (sender.equals("Server")) handleServerMessage(message);
-
-                    // Si no es del servidor ejecuta la acción establecida
-                    else if (onMessageReceivedListener != null)
-                        onMessageReceivedListener.onMessageReceived(sender, message);
-                }
-
-                else closeConnection();
-
-            } catch (IOException e) {
-                closeConnection(e);
-                break;
-            }
-        }
-    }
-
-
-    private void log(String message) {
-        System.out.println("CLIENT_CONTROLLER: " + message);
-    }
-
-
-
-
-    // * Connection control
-
-    public void startListening(
-            OnMessageReceivedListener onMessageReceivedListener,
-            OnServerMessageReceivedListener onServerMessageReceivedListener
-    ) {
-
-        this.onMessageReceivedListener = onMessageReceivedListener;
-        this.onServerMessageReceivedListener = onServerMessageReceivedListener;
-        new Thread(this).start();
-    }
-    public void closeConnection() {
-        closeConnection(null);
-    }
-    public void closeConnection(Throwable error) {
-        if (error != null) log("Closing connection due to an error: " + error.getMessage());
-        else log("Closing connection...");
-
-        try {
-            if (reader != null) reader.close();
-            if (writer != null) writer.close();
-            if (connection != null) connection.close();
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-        log("Connection closed.\n");
-    }
-
-
-
-    // * Client functions
-
-    public void sendCommand(String message) {
-        try {
-            writer.write(message);
-            writer.newLine();
-            writer.flush();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private String getMessageType(String message) {
-        for (int i = 0; i < message.length(); i++) {
-            if (message.charAt(i) == ':') return message.substring(0, i);
-        }
-
-        return null;
-    }
-
-
-    private void handleServerMessage(String message) {
-        String messageType = getMessageType(message);
-        assert messageType != null;
-        message = message.substring(messageType.length() + 2);
-
-
-        switch (messageType) {
-            case "*info", "*error" ->
-                    onServerMessageReceivedListener.onServerMessageReceived(
-                            messageType,
-                            message
-                    );
-            case "*login" -> {
-            }
-        }
-    }
-
-
-    private void logginInGroup(int groupID) {
-
-    }
-
-
-
-
-    // * Events
-
-    public interface OnMessageReceivedListener {
-        void onMessageReceived(String sender, String message);
-    }
-
-
-    public interface OnServerMessageReceivedListener {
-        void onServerMessageReceived(String type, String message);
-    }
-
-
-
-
-
-
-    public static void main(String[] args) throws InterruptedException {
-        ClientController clientController = new ClientController("localhost", 2022);
+    public ClientController() {
+        serverController = new ClientSideServerController(
+                this::onMessageReceived,
+                this::onServerMessageReceived
+        );
 
 
         System.out.println("Connected to server");
-        clientController.startListening(
-                (sender, message) -> System.out.println(sender + ": " + message),
-                 (type, message) -> System.out.println((type.equals("*error") ? "Error: " : "") + message));
-        System.out.println("Started listening");
+    }
 
-        while (!clientController.isClosed()) {
-            clientController.sendCommand(new Scanner(System.in).nextLine());
+
+
+
+    public void startCommunication() throws InterruptedException, IOException {
+        String message;
+        Scanner scan = new Scanner(System.in);
+
+
+        while (!serverController.isClosed()) {
+            if ((message = scan.nextLine()).charAt(0) == '#' || Objects.isNull(groupController))
+                serverController.sendMessage(message);
+            else
+                groupController.sendMessage(message);
             Thread.sleep(200);
         }
+    }
+
+
+
+
+    public void onMessageReceived(String sender, String message) {
+        System.out.println(sender + ": " + message);
+    }
+
+
+    public void onServerMessageReceived(String type, String message) {
+        if (type.equals("*info"))
+            System.out.println("Info from server: " + message);
+        else if (type.equals("*error"))
+            System.out.println("Error from server: " + message);
+        else if (type.equals("*login")) {
+            Pattern login_pattern = Pattern.compile("group: (\\d) username: (.*)");
+            Matcher login_matcher = login_pattern.matcher(message);
+
+
+            if (login_matcher.matches()) login(login_matcher.group(2), Integer.parseInt(login_matcher.group(1)));
+            else
+                System.out.println("Error while processing server response: Server response doesn't matches login pattern.");
+        }
+    }
+
+
+
+
+    public void login(String userName, int groupID) {
+        try {
+            groupController = new GroupController(userName, groupID, this::onMessageReceived);
+
+        } catch (IOException e) {
+            System.out.println("Was not possible to join group.");
+        }
+    }
+
+
+
+
+
+
+
+    public static void main(String[] args) throws InterruptedException, IOException {
+        new ClientController().startCommunication();
     }
 }

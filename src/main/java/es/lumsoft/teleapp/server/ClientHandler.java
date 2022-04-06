@@ -57,6 +57,8 @@ public class ClientHandler implements Runnable {
 
 
 
+    // * Connection functions
+
     public void start() {
         new Thread(this).start();
     }
@@ -88,6 +90,9 @@ public class ClientHandler implements Runnable {
     }
 
 
+
+    // * Server functions
+
     private void parseCommand(String command) {
         String[] commandSplit;
         List<String> params;
@@ -102,13 +107,14 @@ public class ClientHandler implements Runnable {
 
             switch (command) {
                 case "login" -> {
-                    if (params.size() > 1) login(params.get(0), params.get(1));
+                    if (params.size() > 1)
+                        sendMessage(this, "Server", login(params.get(0), params.get(1)));
 
                     else
                         sendMessage(
                                 this,
                                 "Server",
-                                "*error: Too few arguments, should be: #login 'userName' 'group ID or 'new' (Groups listed with #groups)'"
+                                "*error: Too few arguments, should be #login 'userName' 'group ID'|'new' (Groups listed with #groups)"
                         );
                 }
                 case "logout" -> closeConnection();
@@ -149,10 +155,12 @@ public class ClientHandler implements Runnable {
     }
 
 
-    private void login(String userName, String group) {
+    private String login(String userName, String group) {
         int groupID = -1;
         this.userName = (!userName.equals("Server") ? userName : userName + "Fake");
 
+
+        // Comprueba si se tiene que crear un grupo o se tiene que entrar en uno creado
 
         // Si es un grupo nuevo busca un espacio nuevo
         if (group.equals("new")) {
@@ -166,24 +174,32 @@ public class ClientHandler implements Runnable {
         }
         // Si no es nuevo comprueba que sea un grupo válido y que existe el grupo
         else {
-            groupID = Integer.parseInt(group);
+            try {
+                groupID = Integer.parseInt(group);
+
+            } catch (NumberFormatException e) {
+                return "*error: Group ID is not a number";
+            }
+
             if (groupID < 1 || groupID > 250 || !GROUPS_ID.contains(groupID)) groupID = -1;
         }
 
 
+        // Informa del resultado de la operación
+
         // Si el grupo es correcto informa al usuario del grupo
         if (groupID > -1 && loggedInGroup == null) {
             loggedInGroup = groupID;
-            sendMessage(this, "Server", "*login: " + groupID);
+            return "*login: group: " + groupID + " username: " + this.userName;
         }
 
         else if (loggedInGroup != null) {
             // TODO logout del grupo actual para que si se queda sin usuarios un grupo se elimine
             loggedInGroup = groupID;
-            sendMessage(this, "Server", "*login: " + groupID);
+            return "*login: group: " + groupID + " username: " + this.userName;
         }
 
-        else sendMessage(this, "Server", "*error: Was not possible to login in that group.");
+        else return "*error: Was not possible to login in that group.";
     }
 
 
