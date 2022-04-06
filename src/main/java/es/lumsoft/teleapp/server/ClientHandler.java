@@ -1,7 +1,8 @@
 package es.lumsoft.teleapp.server;
 
 import java.io.*;
-import java.net.Socket;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +17,7 @@ public class ClientHandler implements Runnable {
     private BufferedReader reader;
     private BufferedWriter writer;
     private String userName;
-    private Integer loggedInGroup = null;
+    private List<Integer> groups = new ArrayList<>();
 
 
     public ClientHandler(Socket connection) {
@@ -24,6 +25,9 @@ public class ClientHandler implements Runnable {
             this.connection = connection;
             reader = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
             writer = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
+
+
+            CLIENT_CONNECTIONS.add(this);
 
         } catch (IOException e) {
             closeConnection(e);
@@ -68,11 +72,8 @@ public class ClientHandler implements Runnable {
         closeConnection(null);
     }
     public void closeConnection(Throwable error) {
-
-        if (CLIENT_CONNECTIONS.contains(this)) {
-            CLIENT_CONNECTIONS.remove(this);
-            broadcastMessage(userName + " has left.", true);
-        }
+        CLIENT_CONNECTIONS.remove(this);
+        logout(); // Cierra todas las conexiones
 
         if (error != null) log("Closing connection due to an error: " + error.getMessage());
         else log("Closing connection...");
@@ -117,7 +118,21 @@ public class ClientHandler implements Runnable {
                                 "*error: Too few arguments, should be #login 'userName' 'group ID'|'new' (Groups listed with #groups)"
                         );
                 }
-                case "logout" -> closeConnection();
+                case "logout" -> {
+                    if (params.size() == 0) closeConnection();
+                    else {
+                        try {
+                            logout(Integer.parseInt(params.get(0)));
+
+                        } catch (NumberFormatException e) {
+                            sendMessage(
+                                    this,
+                                    "Server",
+                                    "*error: Bad param '" + params.get(0) + "+"
+                            );
+                        }
+                    }
+                }
                 case "groups" -> sendMessage(this, "Server: *info: ", GROUPS_ID.toString());
                 case "private" -> {
                     ClientHandler clientHandler;
@@ -188,14 +203,8 @@ public class ClientHandler implements Runnable {
         // Informa del resultado de la operación
 
         // Si el grupo es correcto informa al usuario del grupo
-        if (groupID > -1 && loggedInGroup == null) {
-            loggedInGroup = groupID;
-            return "*login: group: " + groupID + " username: " + this.userName;
-        }
-
-        else if (loggedInGroup != null) {
-            // TODO logout del grupo actual para que si se queda sin usuarios un grupo se elimine
-            loggedInGroup = groupID;
+        if (groupID > -1 ) {
+            groups.add(groupID);
             return "*login: group: " + groupID + " username: " + this.userName;
         }
 
@@ -203,14 +212,56 @@ public class ClientHandler implements Runnable {
     }
 
 
-    private void broadcastMessage(String message, boolean serverMessage) {
-        if (!serverMessage) log(message);
-        if (message != null) {
-            for (ClientHandler clientConnection : CLIENT_CONNECTIONS) {
-                if (!clientConnection.userName.equals(userName))
-                    sendMessage(clientConnection, (serverMessage ? "Server" : userName), message);
-            }
+    private void logout() {
+        String message = userName + ": " + "has left.";
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+
+
+        for (Integer group : groups) {
+            SocketAddress groupAddress = new InetSocketAddress("239.0.0." + group, 2023);
+            DatagramPacket datagramPacket = new DatagramPacket(
+                    messageBytes,
+                    messageBytes.length,
+                    groupAddress
+            );
+
+
+            // Avisa al grupo de que se va
+            try {
+                DatagramSocket datagramSocket = new DatagramSocket();
+
+
+                datagramSocket.send(datagramPacket);
+                datagramSocket.disconnect();
+                datagramSocket.close();
+
+            } catch (IOException ignored) {}
+
+
+            // Avisa al cliente de que puede cerrar la conexión con el grupo
+            sendMessage(this, "Server", "*logout: " + group);
         }
+    }
+    private void logout(int groupId) {
+        String message = userName + ": " + "has left.";
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        SocketAddress groupAddress = new InetSocketAddress("239.0.0." + groupId, 2023);
+        DatagramPacket datagramPacket = new DatagramPacket(
+                messageBytes,
+                messageBytes.length,
+                groupAddress
+        );
+
+
+        // Avisa al grupo de que se va
+        try {
+            new DatagramSocket().send(datagramPacket);
+
+        } catch (IOException ignored) {}
+
+
+        // Avisa al cliente de que puede cerrar la conexión con el grupo
+        sendMessage(this, "Server", "*logout: group: " + groupId);
     }
 
 

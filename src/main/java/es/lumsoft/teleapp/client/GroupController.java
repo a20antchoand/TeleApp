@@ -12,6 +12,7 @@ public class GroupController implements Runnable {
 
     private final int GroupId;
     private final String UserName;
+    private final Thread thread;
 
 
     private MulticastSocket inConnection;
@@ -36,7 +37,11 @@ public class GroupController implements Runnable {
         outConnection = new DatagramSocket();
 
         // Empieza a escuchar
-        new Thread(this).start();
+        thread = new Thread(this);
+        thread.start();
+
+        // Avisa al resto de que ha llegado
+        sendMessage("has joined.");
     }
 
 
@@ -56,13 +61,24 @@ public class GroupController implements Runnable {
 
 
                 inConnection.receive(datagramPacket);
-                data = new String(datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
-                messageMatcher = messagePattern.matcher(data);
 
-                if (messageMatcher.matches()) {
-                    sender = messageMatcher.group(1);
-                    message = messageMatcher.group(2);
-                    messageReceivedHandler.onMessageReceived(sender, message);
+                if (!closeConnection) {
+                    data = new String(datagramPacket.getData(), datagramPacket.getOffset(), datagramPacket.getLength());
+                    messageMatcher = messagePattern.matcher(data);
+
+                    if (messageMatcher.matches()) {
+                        sender = messageMatcher.group(1);
+                        message = messageMatcher.group(2);
+
+                        if (!sender.equals(UserName)) messageReceivedHandler.onMessageReceived(sender, message);
+                    }
+                }
+
+                else {
+                    inConnection.disconnect();
+                    inConnection.close();
+                    outConnection.disconnect();
+                    outConnection.close();
                 }
             }
 
@@ -83,5 +99,10 @@ public class GroupController implements Runnable {
 
 
         outConnection.send(datagramPacket);
+    }
+
+
+    public void logout() {
+        closeConnection = true;
     }
 }

@@ -1,6 +1,8 @@
 package es.lumsoft.teleapp.client;
 
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -9,7 +11,7 @@ import java.util.regex.Pattern;
 public class ClientController {
 
     private ClientSideServerController serverController;
-    private GroupController groupController;
+    private Dictionary<Integer, GroupController> groupControllers = new Hashtable<>();
 
 
     public ClientController() {
@@ -31,10 +33,13 @@ public class ClientController {
 
 
         while (!serverController.isClosed()) {
-            if ((message = scan.nextLine()).charAt(0) == '#' || Objects.isNull(groupController))
+            if ((message = scan.nextLine()).charAt(0) == '#' || groupControllers.isEmpty())
                 serverController.sendMessage(message);
             else
-                groupController.sendMessage(message);
+                for (var groups = groupControllers.keys(); groups.hasMoreElements(); ) {
+                    groupControllers.get(groups.nextElement()).sendMessage(message);
+                }
+
             Thread.sleep(200);
         }
     }
@@ -61,6 +66,16 @@ public class ClientController {
             else
                 System.out.println("Error while processing server response: Server response doesn't matches login pattern.");
         }
+
+        else if (type.equals("*logout")) {
+            Pattern logout_pattern = Pattern.compile("group: (\\d)");
+            Matcher logout_matcher = logout_pattern.matcher(message);
+
+
+            if (logout_matcher.matches()) logout(Integer.parseInt(logout_matcher.group(1)));
+            else
+                System.out.println("Error while processing server response: Server response doesn't matches login pattern.");
+        }
     }
 
 
@@ -68,11 +83,17 @@ public class ClientController {
 
     public void login(String userName, int groupID) {
         try {
-            groupController = new GroupController(userName, groupID, this::onMessageReceived);
+            groupControllers.put(groupID, new GroupController(userName, groupID, this::onMessageReceived));
 
         } catch (IOException e) {
             System.out.println("Was not possible to join group.");
         }
+    }
+
+
+    public void logout(int groupID) {
+        groupControllers.get(groupID).logout();
+        groupControllers.remove(groupID);
     }
 
 
