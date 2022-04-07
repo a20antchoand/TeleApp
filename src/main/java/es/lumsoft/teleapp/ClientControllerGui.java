@@ -44,7 +44,7 @@ public class ClientControllerGui implements Initializable {
     ClientSideServerController controler;
     private Dictionary<Integer, GroupController> groupControllers = new Hashtable<>();
 
-    public ClientControllerGui() throws IOException, InterruptedException {
+    public ClientControllerGui()  {
 
         controler = new ClientSideServerController(this::rebreMissatge, this::rebreMissatgeServidor);
 
@@ -129,7 +129,24 @@ public class ClientControllerGui implements Initializable {
 
             hbox.setAlignment(Pos.BASELINE_RIGHT);
 
-            controler.sendMessage(text);
+
+                if (text.charAt(0) == '#' || groupControllers.isEmpty())
+                    controler.sendMessage(text);
+                else
+                    for (var groups = groupControllers.keys(); groups.hasMoreElements(); ) {
+                        try {
+                            groupControllers.get(groups.nextElement()).sendMessage(text);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
 
             Label msg = new Label("Tú: " + text);
             msg.setPadding(new Insets(10, 10, 10, 10));
@@ -182,9 +199,6 @@ public class ClientControllerGui implements Initializable {
     protected void rebreMissatgeServidor(String type, String message) {
 
         Platform.runLater(() -> {
-
-
-
 
             if (type.equals("*info"))
                 System.out.println("Info from server: " + message);
