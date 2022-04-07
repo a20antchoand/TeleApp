@@ -1,155 +1,109 @@
 package es.lumsoft.teleapp.client;
 
-import java.io.*;
-import java.net.Socket;
+import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Objects;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class ClientController implements Runnable {
+public class ClientController {
 
-    private Socket connection;
-    private BufferedReader reader;
-    private BufferedWriter writer;
-    private OnMessageReceivedListener messageReceivedListener = null;
-    private String serverName;
-
-
-    public ClientController(Socket connection, OnMessageReceivedListener messageReceivedListener) {
-        try {
-            this.connection = connection;
-            this.messageReceivedListener = messageReceivedListener;
-            reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
-
-            // Espera el nombre del servidor
-            serverName = reader.readLine();
-
-        } catch (IOException e) {
-            closeConnection(e);
-        }
-    }
+    private ClientSideServerController serverController;
+    private Dictionary<Integer, GroupController> groupControllers = new Hashtable<>();
 
 
-
-
-    public boolean isClosed() {
-        return connection.isClosed();
-    }
-    public String getServerName() {
-        return serverName;
-    }
-
-
-
-
-    @Override
-    public void run() {
-        String sender, message;
-
-
-        // Comienza a escuchar
-        while (!connection.isClosed()) {
-            try {
-                sender = reader.readLine();
-                message = reader.readLine();
-
-                // Ejecuta la acción que se haya dado con los datos recibidos
-                if (sender != null && message != null && messageReceivedListener != null)
-                    messageReceivedListener.onMessageReceived(sender, message);
-
-            } catch (IOException e) {
-                closeConnection(e);
-                break;
-            }
-        }
-    }
-
-
-
-
-    public void start(String userName) {
-        try {
-            writer.write(userName);
-            writer.newLine();
-            writer.flush();
-
-            new Thread(this).start();
-
-            System.out.println("Hola");
-
-        } catch (IOException e) {
-            closeConnection(e);
-        }
-    }
-
-
-    public void closeConnection() {
-        closeConnection(null);
-    }
-    public void closeConnection(Throwable error) {
-        if (error != null) log("Closing connection due to an error: " + error.getMessage());
-        else log("Closing connection...");
-
-        try {
-            if (reader != null) reader.close();
-            if (writer != null) writer.close();
-            if (connection != null) connection.close();
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-        log("Connection closed.\n");
-    }
-
-
-    public void sendMessage(String message) {
-        try {
-            writer.write(message);
-            writer.newLine();
-            writer.flush();
-
-            if (message.equals("#logout")) closeConnection();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-
-
-    public interface OnMessageReceivedListener {
-        void onMessageReceived(String sender, String message);
-    }
-
-
-    private void log(String message) {
-        System.out.println("CLIENT_CONTROLLER: " + message);
-    }
-
-
-
-
-
-
-
-
-
-    public static void main(String[] args) throws IOException, InterruptedException {
-        ClientController clientController = new ClientController(
-                new Socket("localhost", 2022),
-                (sender, message) -> System.out.println(sender + ": " + message)
+    public ClientController() {
+        serverController = new ClientSideServerController(
+                this::onMessageReceived,
+                this::onServerMessageReceived
         );
 
-        System.out.println("Connected to " + clientController.getServerName());
-        System.out.print("Escribe el nombre de usuario: ");
-        clientController.start(new Scanner(System.in).nextLine());
-        System.out.println("Chat iniciado");
+
+        System.out.println("Connected to server");
+    }
 
 
-        while (!clientController.isClosed()) {
-            clientController.sendMessage(new Scanner(System.in).nextLine());
+
+
+    public void startCommunication() throws InterruptedException, IOException {
+        String message;
+        Scanner scan = new Scanner(System.in);
+
+
+        while (!serverController.isClosed()) {
+            if ((message = scan.nextLine()).charAt(0) == '#' || groupControllers.isEmpty())
+                serverController.sendMessage(message);
+            else
+                for (var groups = groupControllers.keys(); groups.hasMoreElements(); ) {
+                    groupControllers.get(groups.nextElement()).sendMessage(message);
+                }
+
             Thread.sleep(200);
         }
+    }
+
+
+
+
+    public void onMessageReceived(String sender, String message) {
+        System.out.println(sender + ": " + message);
+    }
+
+
+    public void onServerMessageReceived(String type, String message) {
+        if (type.equals("*info"))
+            System.out.println("Info from server: " + message);
+        else if (type.equals("*error"))
+            System.out.println("Error from server: " + message);
+        else if (type.equals("*login")) {
+            Pattern login_pattern = Pattern.compile("group: (\\d) username: (.*)");
+            Matcher login_matcher = login_pattern.matcher(message);
+
+
+            if (login_matcher.matches()) login(login_matcher.group(2), Integer.parseInt(login_matcher.group(1)));
+            else
+                System.out.println("Error while processing server response: Server response doesn't matches login pattern.");
+        }
+
+        else if (type.equals("*logout")) {
+            Pattern logout_pattern = Pattern.compile("(\\d)");
+            Matcher logout_matcher = logout_pattern.matcher(message);
+
+
+            if (logout_matcher.matches()) logout(Integer.parseInt(logout_matcher.group(1)));
+            else
+                System.out.println("Error while processing server response: Server response doesn't matches login pattern.");
+        }
+    }
+
+
+
+
+    public void login(String userName, int groupID) {
+        try {
+            groupControllers.put(groupID, new GroupController(userName, groupID, this::onMessageReceived));
+
+        } catch (IOException e) {
+            System.out.println("Was not possible to join group.");
+        }
+    }
+
+
+    public void logout(int groupID) {
+        System.out.println("Logging out from group " + groupID);
+        groupControllers.get(groupID).logout();
+        groupControllers.remove(groupID);
+    }
+
+
+
+
+
+
+
+    public static void main(String[] args) throws InterruptedException, IOException {
+        new ClientController().startCommunication();
     }
 }

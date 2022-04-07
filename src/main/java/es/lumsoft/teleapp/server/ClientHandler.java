@@ -1,7 +1,8 @@
 package es.lumsoft.teleapp.server;
 
 import java.io.*;
-import java.net.Socket;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,22 +10,21 @@ import java.util.List;
 public class ClientHandler implements Runnable {
 
     private static final List<ClientHandler> CLIENT_CONNECTIONS = new ArrayList<>();
+    private static final List<Integer> GROUPS_ID = new ArrayList<>();
 
 
     private Socket connection;
     private BufferedReader reader;
     private BufferedWriter writer;
     private String userName;
+    private List<Integer> clientGroups = new ArrayList<>();
 
 
-    public ClientHandler(Socket connection, String serverName) {
+    public ClientHandler(Socket connection) {
         try {
             this.connection = connection;
             reader = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
             writer = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
-
-            // Envía el nombre del servidor
-            sendMessage(this, null, serverName);
 
         } catch (IOException e) {
             closeConnection(e);
@@ -38,22 +38,6 @@ public class ClientHandler implements Runnable {
     public void run() {
         String message;
 
-
-        // Espera al nombre de usuario
-        try {
-            this.userName = this.reader.readLine();
-
-        } catch (IOException e) {
-            closeConnection(e);
-        }
-
-        // Informa al resto de usuarios
-        broadcastMessage(userName + " has joined.", true);
-
-        // Añade la conexión actual a la lista de conexiones con el servidor
-        CLIENT_CONNECTIONS.add(this);
-
-
         // Comienza a escuchar
         while (!connection.isClosed()) {
             try {
@@ -61,7 +45,7 @@ public class ClientHandler implements Runnable {
 
                 if (message != null) {
                     if (message.length() > 0 && message.charAt(0) == '#') parseCommand(message);
-                    else broadcastMessage(message, false);
+                    else sendMessage(this, "Server", "*error: Bad request.");
                 }
 
             } catch (IOException e) {
@@ -69,12 +53,12 @@ public class ClientHandler implements Runnable {
                 break;
             }
         }
-
-        System.out.println("Finalizado correctamente");
     }
 
 
 
+
+    // * Connection functions
 
     public void start() {
         new Thread(this).start();
@@ -88,7 +72,7 @@ public class ClientHandler implements Runnable {
 
         if (CLIENT_CONNECTIONS.contains(this)) {
             CLIENT_CONNECTIONS.remove(this);
-            broadcastMessage(userName + " has left.", true);
+            logout(); // Cierra todas las conexiones
         }
 
         if (error != null) log("Closing connection due to an error: " + error.getMessage());
@@ -107,6 +91,9 @@ public class ClientHandler implements Runnable {
     }
 
 
+
+    // * Server functions
+
     private void parseCommand(String command) {
         String[] commandSplit;
         List<String> params;
@@ -119,56 +106,178 @@ public class ClientHandler implements Runnable {
             params = Arrays.asList(commandSplit).subList(1, commandSplit.length);
 
 
-            switch (command) {
-                case "logout" -> closeConnection();
-                case "private" -> {
-                    ClientHandler clientHandler;
-                    StringBuilder finalMessage = new StringBuilder();
+            if ((!command.equals("login") || (params.size() > 0 && params.get(0).equals("group"))) &&
+                    userName == null) {
 
+                sendMessage(this, "Server", "*error: You must be logged in. Use #login 'username'");
+            }
 
-                    if (params.size() >= 2) {
-                        // Busca el destinatario
-                        clientHandler = findDirection(params.get(0));
+            else {
+                switch (command) {
+                    case "login" -> {
+                        if (params.size() >= 1) {
+                            if (!params.get(0).equals("group")) loginServer(params.get(0));
+                            else sendMessage(this, "Server", loginGroup(params.get(1)));
+                        }
 
-                        // Crea el mensaje a partir de los parámetros
-                        params.subList(1, params.size()).forEach(param -> finalMessage.append(param + " "));
-
-                        // Si se ha encontrado el destinatario envía el mensaje
-                        if (clientHandler != null)
-                            sendMessage(clientHandler, this.userName, finalMessage.toString());
                         else
-                            sendMessage(this, "Server", "Contact not found.");
+                            sendMessage(
+                                    this,
+                                    "Server",
+                                    "*error: Too few arguments, should be #login 'userName' or #login group 'group ID'|'new' (Groups listed with #groups)"
+                            );
+                    }
+                    case "logout" -> {
+                        if (params.size() == 0) closeConnection();
+                        else {
+                            try {
+                                logout(Integer.parseInt(params.get(0)));
+
+                            } catch (NumberFormatException e) {
+                                sendMessage(
+                                        this,
+                                        "Server",
+                                        "*error: Bad param '" + params.get(0) + "+"
+                                );
+                            }
+                        }
+                    }
+                    case "groups" -> sendMessage(this, "Server: *info: ", GROUPS_ID.toString());
+                    case "private" -> {
+                        ClientHandler clientHandler;
+                        StringBuilder finalMessage = new StringBuilder();
+
+
+                        if (params.size() >= 2) {
+                            // Busca el destinatario
+                            clientHandler = findDirection(params.get(0));
+
+                            // Crea el mensaje a partir de los parámetros
+                            params.subList(1, params.size()).forEach(param -> finalMessage.append(param + " "));
+
+                            // Si se ha encontrado el destinatario envía el mensaje
+                            if (clientHandler != null)
+                                sendMessage(clientHandler, this.userName, finalMessage.toString());
+                            else
+                                sendMessage(this, "Server", "*error: Contact not found.");
+                        }
+
+                        else
+                            sendMessage(
+                                    this,
+                                    "Server",
+                                    "*error: Too few arguments, should be: #private 'userName' 'message'"
+                            );
                     }
 
-                    else
-                        sendMessage(
-                                this,
-                                "Server",
-                                "Too few arguments, should be: #private 'userName' 'message'"
-                        );
+                    default -> sendMessage(this, "Server", "*error: Invalid command.");
                 }
-
-                default -> sendMessage(this, "Server", "Invalid command.");
             }
         }
 
         else
-            sendMessage(this, "Server", "Invalid command.");
+            sendMessage(this, "Server", "*error: Invalid command.");
     }
 
 
-    private void broadcastMessage(String message, boolean serverMessage) {
+    private void loginServer(String userName) {
+        this.userName = (!userName.equals("Server") ? userName : userName + "_Fake");
+        CLIENT_CONNECTIONS.add(this);
+        sendMessage(this, "Server", "*info: Logged into server as " + userName);
+    }
 
 
+    private String loginGroup(String group) {
+        int groupID = -1;
 
-        if (!serverMessage) log(message);
-        if (message != null) {
 
-            for (ClientHandler clientConnection : CLIENT_CONNECTIONS) {
-                if (!clientConnection.userName.equals(userName))
-                    sendMessage(clientConnection, (serverMessage ? "Server" : userName), message);
+        // Comprueba si se tiene que crear un grupo o se tiene que entrar en uno creado
+
+        // Si es un grupo nuevo busca un espacio nuevo
+        if (group.equals("new")) {
+            for (int i = 1; i <= 250; i++) {
+                if (!GROUPS_ID.contains(i)) {
+                    groupID = i;
+                    GROUPS_ID.add(groupID);
+                    break;
+                }
             }
         }
+        // Si no es nuevo comprueba que sea un grupo válido y que existe el grupo
+        else {
+            try {
+                groupID = Integer.parseInt(group);
+
+            } catch (NumberFormatException e) {
+                return "*error: Group ID is not a number";
+            }
+
+            if (groupID < 1 || groupID > 250 || !GROUPS_ID.contains(groupID)) groupID = -1;
+        }
+
+
+        // Informa del resultado de la operación
+
+        // Si el grupo es correcto informa al usuario del grupo
+        if (groupID > -1 ) {
+            clientGroups.add(groupID);
+            return "*login: group: " + groupID + " username: " + userName;
+        }
+
+        else return "*error: Was not possible to login in that group.";
+    }
+
+
+    private void logout() {
+        String message = userName + ": " + "has left.";
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+
+
+        for (Integer group : clientGroups) {
+            SocketAddress groupAddress = new InetSocketAddress("239.0.0." + group, 2023);
+            DatagramPacket datagramPacket = new DatagramPacket(
+                    messageBytes,
+                    messageBytes.length,
+                    groupAddress
+            );
+
+
+            // Avisa al grupo de que se va
+            try {
+                DatagramSocket datagramSocket = new DatagramSocket();
+
+
+                datagramSocket.send(datagramPacket);
+                datagramSocket.disconnect();
+                datagramSocket.close();
+
+            } catch (IOException ignored) {}
+        }
+
+        clientGroups.clear();
+    }
+    private void logout(int groupId) {
+        String message = userName + ": " + "has left.";
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        SocketAddress groupAddress = new InetSocketAddress("239.0.0." + groupId, 2023);
+        DatagramPacket datagramPacket = new DatagramPacket(
+                messageBytes,
+                messageBytes.length,
+                groupAddress
+        );
+
+
+        // Avisa al grupo de que se va
+        try {
+            new DatagramSocket().send(datagramPacket);
+
+        } catch (IOException ignored) {}
+
+        clientGroups.remove((Integer) groupId);
+
+        // Avisa al cliente de que puede cerrar la conexión con el grupo
+        if (connection.isConnected() && !connection.isClosed())
+            sendMessage(this, "Server", "*logout: " + groupId);
     }
 
 
