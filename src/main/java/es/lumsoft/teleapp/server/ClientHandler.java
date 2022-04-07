@@ -106,23 +106,25 @@ public class ClientHandler implements Runnable {
             params = Arrays.asList(commandSplit).subList(1, commandSplit.length);
 
 
-            if (!command.equals("loginGroup") && userName == null) {
-                sendMessage(this, "Server", "*error: You must be logged in. Use #loginGroup 'username'");
+            if ((!command.equals("login") || (params.size() > 0 && params.get(0).equals("group"))) &&
+                    userName == null) {
+
+                sendMessage(this, "Server", "*error: You must be logged in. Use #login 'username'");
             }
 
             else {
                 switch (command) {
-                    case "loginGroup" -> {
-                        if (params.size() > 1) {
+                    case "login" -> {
+                        if (params.size() >= 1) {
                             if (!params.get(0).equals("group")) loginServer(params.get(0));
-                            else loginGroup(params.get(1));
+                            else sendMessage(this, "Server", loginGroup(params.get(1)));
                         }
 
                         else
                             sendMessage(
                                     this,
                                     "Server",
-                                    "*error: Too few arguments, should be #loginGroup 'userName' or #loginGroup group 'group ID'|'new' (Groups listed with #groups)"
+                                    "*error: Too few arguments, should be #login 'userName' or #login group 'group ID'|'new' (Groups listed with #groups)"
                             );
                     }
                     case "logout" -> {
@@ -181,6 +183,7 @@ public class ClientHandler implements Runnable {
     private void loginServer(String userName) {
         this.userName = (!userName.equals("Server") ? userName : userName + "_Fake");
         CLIENT_CONNECTIONS.add(this);
+        sendMessage(this, "Server", "*info: Logged into server as " + userName);
     }
 
 
@@ -218,10 +221,10 @@ public class ClientHandler implements Runnable {
         // Si el grupo es correcto informa al usuario del grupo
         if (groupID > -1 ) {
             clientGroups.add(groupID);
-            return "*loginGroup: group: " + groupID + " username: " + userName;
+            return "*login: group: " + groupID + " username: " + userName;
         }
 
-        else return "*error: Was not possible to loginGroup in that group.";
+        else return "*error: Was not possible to login in that group.";
     }
 
 
@@ -249,12 +252,9 @@ public class ClientHandler implements Runnable {
                 datagramSocket.close();
 
             } catch (IOException ignored) {}
-
-            clientGroups.remove(group);
-
-            // Avisa al cliente de que puede cerrar la conexión con el grupo
-            sendMessage(this, "Server", "*logout: " + group);
         }
+
+        clientGroups.clear();
     }
     private void logout(int groupId) {
         String message = userName + ": " + "has left.";
@@ -273,10 +273,11 @@ public class ClientHandler implements Runnable {
 
         } catch (IOException ignored) {}
 
-        clientGroups.remove(groupId);
+        clientGroups.remove((Integer) groupId);
 
         // Avisa al cliente de que puede cerrar la conexión con el grupo
-        sendMessage(this, "Server", "*logout: group: " + groupId);
+        if (connection.isConnected() && !connection.isClosed())
+            sendMessage(this, "Server", "*logout: " + groupId);
     }
 
 

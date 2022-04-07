@@ -30,7 +30,7 @@ public class GroupController implements Runnable {
         inConnection = new MulticastSocket(2023);
         inConnection.joinGroup(
                 new InetSocketAddress("239.0.0." + GroupId, 2023),
-                NetworkInterface.getByName("wlan0")
+                NetworkInterface.getByName("wlan1")
         );
 
         // Crea el socket de escritura

@@ -68,7 +68,7 @@ public class ClientController {
         }
 
         else if (type.equals("*logout")) {
-            Pattern logout_pattern = Pattern.compile("group: (\\d)");
+            Pattern logout_pattern = Pattern.compile("(\\d)");
             Matcher logout_matcher = logout_pattern.matcher(message);
 
 
@@ -92,6 +92,7 @@ public class ClientController {
 
 
     public void logout(int groupID) {
+        System.out.println("Logging out from group " + groupID);
         groupControllers.get(groupID).logout();
         groupControllers.remove(groupID);
     }
