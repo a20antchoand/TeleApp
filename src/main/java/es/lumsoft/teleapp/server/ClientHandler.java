@@ -17,7 +17,7 @@ public class ClientHandler implements Runnable {
     private BufferedReader reader;
     private BufferedWriter writer;
     private String userName;
-    private List<Integer> groups = new ArrayList<>();
+    private List<Integer> clientGroups = new ArrayList<>();
 
 
     public ClientHandler(Socket connection) {
@@ -25,9 +25,6 @@ public class ClientHandler implements Runnable {
             this.connection = connection;
             reader = new BufferedReader(new InputStreamReader(this.connection.getInputStream()));
             writer = new BufferedWriter(new OutputStreamWriter(this.connection.getOutputStream()));
-
-
-            CLIENT_CONNECTIONS.add(this);
 
         } catch (IOException e) {
             closeConnection(e);
@@ -72,8 +69,11 @@ public class ClientHandler implements Runnable {
         closeConnection(null);
     }
     public void closeConnection(Throwable error) {
-        CLIENT_CONNECTIONS.remove(this);
-        logout(); // Cierra todas las conexiones
+
+        if (CLIENT_CONNECTIONS.contains(this)) {
+            CLIENT_CONNECTIONS.remove(this);
+            logout(); // Cierra todas las conexiones
+        }
 
         if (error != null) log("Closing connection due to an error: " + error.getMessage());
         else log("Closing connection...");
@@ -106,62 +106,70 @@ public class ClientHandler implements Runnable {
             params = Arrays.asList(commandSplit).subList(1, commandSplit.length);
 
 
-            switch (command) {
-                case "login" -> {
-                    if (params.size() > 1)
-                        sendMessage(this, "Server", login(params.get(0), params.get(1)));
+            if (!command.equals("loginGroup") && userName == null) {
+                sendMessage(this, "Server", "*error: You must be logged in. Use #loginGroup 'username'");
+            }
 
-                    else
-                        sendMessage(
-                                this,
-                                "Server",
-                                "*error: Too few arguments, should be #login 'userName' 'group ID'|'new' (Groups listed with #groups)"
-                        );
-                }
-                case "logout" -> {
-                    if (params.size() == 0) closeConnection();
-                    else {
-                        try {
-                            logout(Integer.parseInt(params.get(0)));
+            else {
+                switch (command) {
+                    case "loginGroup" -> {
+                        if (params.size() > 1) {
+                            if (!params.get(0).equals("group")) loginServer(params.get(0));
+                            else loginGroup(params.get(1));
+                        }
 
-                        } catch (NumberFormatException e) {
+                        else
                             sendMessage(
                                     this,
                                     "Server",
-                                    "*error: Bad param '" + params.get(0) + "+"
+                                    "*error: Too few arguments, should be #loginGroup 'userName' or #loginGroup group 'group ID'|'new' (Groups listed with #groups)"
                             );
+                    }
+                    case "logout" -> {
+                        if (params.size() == 0) closeConnection();
+                        else {
+                            try {
+                                logout(Integer.parseInt(params.get(0)));
+
+                            } catch (NumberFormatException e) {
+                                sendMessage(
+                                        this,
+                                        "Server",
+                                        "*error: Bad param '" + params.get(0) + "+"
+                                );
+                            }
                         }
                     }
-                }
-                case "groups" -> sendMessage(this, "Server: *info: ", GROUPS_ID.toString());
-                case "private" -> {
-                    ClientHandler clientHandler;
-                    StringBuilder finalMessage = new StringBuilder();
+                    case "groups" -> sendMessage(this, "Server: *info: ", GROUPS_ID.toString());
+                    case "private" -> {
+                        ClientHandler clientHandler;
+                        StringBuilder finalMessage = new StringBuilder();
 
 
-                    if (params.size() >= 2) {
-                        // Busca el destinatario
-                        clientHandler = findDirection(params.get(0));
+                        if (params.size() >= 2) {
+                            // Busca el destinatario
+                            clientHandler = findDirection(params.get(0));
 
-                        // Crea el mensaje a partir de los parámetros
-                        params.subList(1, params.size()).forEach(param -> finalMessage.append(param + " "));
+                            // Crea el mensaje a partir de los parámetros
+                            params.subList(1, params.size()).forEach(param -> finalMessage.append(param + " "));
 
-                        // Si se ha encontrado el destinatario envía el mensaje
-                        if (clientHandler != null)
-                            sendMessage(clientHandler, this.userName, finalMessage.toString());
+                            // Si se ha encontrado el destinatario envía el mensaje
+                            if (clientHandler != null)
+                                sendMessage(clientHandler, this.userName, finalMessage.toString());
+                            else
+                                sendMessage(this, "Server", "*error: Contact not found.");
+                        }
+
                         else
-                            sendMessage(this, "Server", "*error: Contact not found.");
+                            sendMessage(
+                                    this,
+                                    "Server",
+                                    "*error: Too few arguments, should be: #private 'userName' 'message'"
+                            );
                     }
 
-                    else
-                        sendMessage(
-                                this,
-                                "Server",
-                                "*error: Too few arguments, should be: #private 'userName' 'message'"
-                        );
+                    default -> sendMessage(this, "Server", "*error: Invalid command.");
                 }
-
-                default -> sendMessage(this, "Server", "*error: Invalid command.");
             }
         }
 
@@ -170,9 +178,14 @@ public class ClientHandler implements Runnable {
     }
 
 
-    private String login(String userName, String group) {
+    private void loginServer(String userName) {
+        this.userName = (!userName.equals("Server") ? userName : userName + "_Fake");
+        CLIENT_CONNECTIONS.add(this);
+    }
+
+
+    private String loginGroup(String group) {
         int groupID = -1;
-        this.userName = (!userName.equals("Server") ? userName : userName + "Fake");
 
 
         // Comprueba si se tiene que crear un grupo o se tiene que entrar en uno creado
@@ -204,11 +217,11 @@ public class ClientHandler implements Runnable {
 
         // Si el grupo es correcto informa al usuario del grupo
         if (groupID > -1 ) {
-            groups.add(groupID);
-            return "*login: group: " + groupID + " username: " + this.userName;
+            clientGroups.add(groupID);
+            return "*loginGroup: group: " + groupID + " username: " + userName;
         }
 
-        else return "*error: Was not possible to login in that group.";
+        else return "*error: Was not possible to loginGroup in that group.";
     }
 
 
@@ -217,7 +230,7 @@ public class ClientHandler implements Runnable {
         byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
 
 
-        for (Integer group : groups) {
+        for (Integer group : clientGroups) {
             SocketAddress groupAddress = new InetSocketAddress("239.0.0." + group, 2023);
             DatagramPacket datagramPacket = new DatagramPacket(
                     messageBytes,
@@ -237,6 +250,7 @@ public class ClientHandler implements Runnable {
 
             } catch (IOException ignored) {}
 
+            clientGroups.remove(group);
 
             // Avisa al cliente de que puede cerrar la conexión con el grupo
             sendMessage(this, "Server", "*logout: " + group);
@@ -259,6 +273,7 @@ public class ClientHandler implements Runnable {
 
         } catch (IOException ignored) {}
 
+        clientGroups.remove(groupId);
 
         // Avisa al cliente de que puede cerrar la conexión con el grupo
         sendMessage(this, "Server", "*logout: group: " + groupId);
